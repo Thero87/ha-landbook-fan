@@ -48,7 +48,7 @@ MAGIC = b"\xaa\xaa"
 # reports. If no frame arrives within the read timeout the socket is treated as
 # dead and the listener exits so the coordinator reconnects.
 _REARM_INTERVAL = 12.0
-_READ_TIMEOUT = 90.0
+_READ_TIMEOUT = 40.0  # the 12s re-arm read always draws a reply, so 40s of silence = dead socket
 # Bound the TCP connect + handshake; without this a slow/unresponsive device
 # (or a half-open socket during a reload) blocks setup until HA's bootstrap
 # timeout, stalling the whole instance.

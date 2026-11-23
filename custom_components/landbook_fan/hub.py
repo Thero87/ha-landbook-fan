@@ -96,7 +96,10 @@ class FanHub:
                     err,
                 )
             except (FanError, OSError) as err:
-                _LOGGER.debug("Fan connection lost: %s", err)
+                if self.available:
+                    _LOGGER.warning("Lost connection to fan at %s (%s); retrying", self.host, err)
+                else:
+                    _LOGGER.debug("Fan at %s still unreachable: %s", self.host, err)
             self._set_available(False)
             if self._conn is not None:
                 with contextlib.suppress(Exception):
