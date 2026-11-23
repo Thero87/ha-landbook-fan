@@ -1,0 +1,75 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add a Landbook fan",
+        "description": "Connects to the fan directly on your network (TCP 6607). Give the fan a fixed IP in your router first.",
+        "data": {
+          "name": "Name",
+          "host": "Fan IP address",
+          "auth_key": "Auth key"
+        },
+        "data_description": {
+          "auth_key": "The fan's authKey from the Landbook cloud (24 characters, ends in ==). It changes whenever the fan is re-paired."
+        }
+      },
+      "reconfigure": {
+        "title": "Update fan connection",
+        "data": {
+          "host": "Fan IP address",
+          "auth_key": "Auth key"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Fan rejected its key",
+        "description": "The fan was probably re-paired in Landbook, which gives it a new auth key. Enter the new one.",
+        "data": {
+          "auth_key": "Auth key"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not reach the fan on port 6607. Check the IP and that the fan is on.",
+      "invalid_auth": "The fan rejected this auth key.",
+      "invalid_key": "That doesn't look like a valid auth key (base64, 16 bytes)."
+    },
+    "abort": {
+      "already_configured": "This fan is already set up.",
+      "reconfigure_successful": "Updated.",
+      "reauth_successful": "Updated."
+    }
+  },
+  "entity": {
+    "fan": {
+      "fan": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "normal": "Normal",
+              "natural": "Natural",
+              "sleep": "Sleep",
+              "auto": "Auto"
+            }
+          }
+        }
+      }
+    },
+    "switch": {
+      "display": { "name": "Display light" },
+      "beep": { "name": "Button beep" }
+    },
+    "sensor": {
+      "temperature": { "name": "Room temperature" }
+    },
+    "select": {
+      "timer": {
+        "name": "Shut-off timer",
+        "state": {
+          "off": "Off", "1h": "1 hour", "2h": "2 hours", "3h": "3 hours", "4h": "4 hours",
+          "5h": "5 hours", "6h": "6 hours", "7h": "7 hours", "8h": "8 hours",
+          "9h": "9 hours", "10h": "10 hours", "11h": "11 hours", "12h": "12 hours"
+        }
+      }
+    }
+  }
+}

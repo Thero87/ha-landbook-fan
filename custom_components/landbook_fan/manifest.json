@@ -1,0 +1,13 @@
+{
+  "domain": "landbook_fan",
+  "name": "Landbook Fan (local)",
+  "codeowners": ["@Thero87"],
+  "config_flow": true,
+  "documentation": "https://github.com/Thero87/ha-landbook-fan",
+  "issue_tracker": "https://github.com/Thero87/ha-landbook-fan/issues",
+  "integration_type": "device",
+  "iot_class": "local_push",
+  "loggers": ["custom_components.landbook_fan"],
+  "requirements": [],
+  "version": "0.1.0"
+}
