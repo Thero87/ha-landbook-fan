@@ -30,6 +30,8 @@ class FanHub:
         self._task: asyncio.Task | None = None
         self._listeners: list[Callable[[], None]] = []
         self._first_state = asyncio.Event()
+        self._connected = asyncio.Event()
+        self._kick = asyncio.Event()
 
     # --- listeners ---
     @callback
@@ -54,6 +56,10 @@ class FanHub:
         self._notify()
 
     def _set_available(self, value: bool) -> None:
+        if value:
+            self._connected.set()
+        else:
+            self._connected.clear()
         if self.available != value:
             self.available = value
             self.hass.loop.call_soon_threadsafe(self._notify)
@@ -105,7 +111,12 @@ class FanHub:
                 with contextlib.suppress(Exception):
                     await self._conn.close()
                 self._conn = None
-            await asyncio.sleep(RECONNECT_DELAY_S * (6 if self.auth_failed else 1))
+            # Wait before retrying, but retry at once if a command needs the fan.
+            with contextlib.suppress(TimeoutError):
+                await asyncio.wait_for(
+                    self._kick.wait(), RECONNECT_DELAY_S * (6 if self.auth_failed else 1)
+                )
+            self._kick.clear()
 
     async def async_stop(self) -> None:
         if self._task is not None:
@@ -119,13 +130,37 @@ class FanHub:
             self._conn = None
 
     # --- commands ---
+    async def _drop_connection(self) -> None:
+        """Kill a socket we know is dead so the run loop reconnects right away."""
+        self._set_available(False)
+        conn = self._conn
+        if conn is not None:
+            with contextlib.suppress(Exception):
+                await conn.close()  # makes listen() fail -> _run reconnects
+        self._kick.set()
+
     async def async_write(self, tag: int, value: object, *, is_bool: bool) -> None:
-        if self._conn is None or not self.available:
-            raise HomeAssistantError("The fan is not connected right now")
-        try:
-            await self._conn.async_set(tag, value, is_bool=is_bool)
-        except FanError as err:
-            raise HomeAssistantError(f"Could not send command to the fan: {err}") from err
+        for attempt in (1, 2):
+            if not self._connected.is_set():
+                # e.g. the fan was just power-cycled: give the reconnect a moment
+                self._kick.set()
+                try:
+                    await asyncio.wait_for(self._connected.wait(), 20)
+                except TimeoutError as err:
+                    raise HomeAssistantError("The fan is not reachable right now") from err
+            conn = self._conn
+            if conn is None:
+                continue
+            try:
+                await conn.async_set(tag, value, is_bool=is_bool)
+                break
+            except FanError as err:
+                _LOGGER.debug("Write failed (%s); reconnecting and retrying", err)
+                await self._drop_connection()
+                if attempt == 2:
+                    raise HomeAssistantError(f"Could not send command to the fan: {err}") from err
+        else:
+            raise HomeAssistantError("The fan is not reachable right now")
         # Optimistic update; the fan's own report follows within a second.
         self.state[tag] = bool(value) if is_bool else int(value)
         self._notify()

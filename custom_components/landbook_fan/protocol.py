@@ -459,7 +459,10 @@ class FanConnection:
             raise FanError(str(err)) from err
         finally:
             ping_task.cancel()
-            with contextlib.suppress(Exception):
+            # CancelledError is a BaseException: it must be suppressed here too, or it
+            # escapes listen() and the hub's reconnect loop treats it as its own
+            # cancellation and stops for good (the fan then never comes back).
+            with contextlib.suppress(asyncio.CancelledError, Exception):
                 await ping_task
 
     async def close(self) -> None:
